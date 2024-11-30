@@ -1,7 +1,33 @@
 const express = require('express');
 const router = express.Router();
 const Bill = require('../models/Bill');
-const Inventory = require('../models/Inventory');
+
+/**
+ * @swagger
+ * /api/bills:
+ *   get:
+ *     summary: Retrieve all bills
+ *     description: Fetch all the bills created.
+ *     responses:
+ *       200:
+ *         description: A list of bills
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Bill'
+ *       500:
+ *         description: Internal server error
+ */
+router.get('/', async (req, res) => {
+    try {
+        const bills = await Bill.find();
+        res.status(200).json(bills);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 
 /**
  * @swagger
@@ -95,6 +121,101 @@ router.post('/', async (req, res) => {
         const savedBill = await newBill.save();
 
         res.status(201).json(savedBill); // Return the saved bill
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+
+/**
+ * @swagger
+ * /api/bills/{id}:
+ *   put:
+ *     summary: Update a bill
+ *     description: Update a specific bill using its ID.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the bill to update
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Bill'
+ *     responses:
+ *       200:
+ *         description: Bill updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Bill'
+ *       404:
+ *         description: Bill not found
+ *       500:
+ *         description: Internal server error
+ */
+router.put('/:id', async (req, res) => {
+    try {
+        const { customerName, items } = req.body;
+
+        const updatedBill = await Bill.findByIdAndUpdate(
+            req.params.id,
+            { customerName, items },
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedBill) {
+            return res.status(404).json({ error: 'Bill not found' });
+        }
+
+        res.status(200).json(updatedBill);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+/**
+ * @swagger
+ * /api/bills/{id}:
+ *   delete:
+ *     summary: Delete a bill
+ *     description: Remove a bill using its ID.
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the bill to delete
+ *     responses:
+ *       200:
+ *         description: Bill deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Bill deleted successfully"
+ *       404:
+ *         description: Bill not found
+ *       500:
+ *         description: Internal server error
+ */
+router.delete('/:id', async (req, res) => {
+    try {
+        const deletedBill = await Bill.findByIdAndDelete(req.params.id);
+
+        if (!deletedBill) {
+            return res.status(404).json({ error: 'Bill not found' });
+        }
+
+        res.status(200).json({ message: 'Bill deleted successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
